@@ -29,7 +29,7 @@ def md5(fname):
 #formatted message re: mismatched cells
 def mismatch_printer(sheet, row_new_list, row_old_list):
     
-    mismatches = [('Audit Report:', cell_new, 'DCW:',cell_old) for cell_new, cell_old in zip(row_new_list, row_old_list) if cell_new != cell_old]
+    mismatches = [('OLD:', cell_new, 'NEW:',cell_old) for cell_new, cell_old in zip(row_new_list, row_old_list) if cell_new != cell_old]
     
     if len(mismatches) != 0:
         csv_writer(mismatches, sheet)
