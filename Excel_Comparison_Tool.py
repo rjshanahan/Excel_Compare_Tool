@@ -10,6 +10,7 @@ from openpyxl import load_workbook
 import itertools
 import hashlib
 import csv
+import pprint as pp
 
 
 new = 'YOURNEWWORKBOOK.xlsx'
@@ -48,7 +49,7 @@ def csv_writer(mismatches, sheet):
     #with open(file_out, 'w') as csvfile:
 
     row1 = 'SHEET: "' + sheet + '" has matching errors - refer to problem cell(s) below' + '\n\n'
-    row2 = mismatches
+    row2 = pp.pformat(mismatches)
     row3 = '\n\n'
         
     text_file = open(file_out, "w")
