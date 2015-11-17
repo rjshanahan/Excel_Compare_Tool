@@ -70,7 +70,7 @@ def list_stripper(row, n):
     
     row_list_cat = []
 
-    [row_list_cat.append(''.join([cell.internal_value for cell in row[0:n - 1]]))]
+    [row_list_cat.append(''.join([cell.internal_value for cell in row[0:n]]))]
     
     #print row_list_cat[0:20]
     
@@ -96,6 +96,9 @@ def sheet_checker(ready):
         row_new_list = []
         row_old_list = []
         
+        compare_new_list = []
+        compare_old_list = []
+        
         #"map" with paramter 'None' ensures that lists of different length can be handled
         for row_new, row_old in map(None, ws_new.iter_rows(), ws_old.iter_rows()):
             
@@ -106,29 +109,38 @@ def sheet_checker(ready):
             if row_old is not None:
                 [row_old_list.append([cell_old.coordinate, cell_old.internal_value]) for cell_old in row_old]
         
-            
+            #check to see if overall lists match - yeah right!@!
             if row_new_list != row_old_list:
                 
+                #check this: only row_old required i suspect
                 if row_new is not None and row_old is not None:
                     
+                    #this will define how many column stripping cycles to run
                     n_new = len(row_new)
                     n_old = len(row_old)  
                     
-                    for n in range(n_new):
-                        if n_new > 2 and n_old > 2:
-                            compare_new = list_stripper(row_new, n_new)
-                            compare_old = list_stripper(row_old, n_old)
-                            
-                            
-                    x = 1
-                    for e in compare_old:
-                        if e not in compare_new:
-                            print str(x) + '_Columns Compared: ' + str(n_new) + '_' + str(e)
-                            x += 1
-                           
-                        n_new = n_new - 1
-                        n_old = n_old - 1
+                    
+                    for n in range(1, n_new):
+                        
+                        compare_new_list = []
+                        compare_old_list = []
         
+                        compare_new = list_stripper(row_new, n)
+                        compare_new_list.append(compare_new)
+                        
+                        compare_old = list_stripper(row_old, n)
+                        compare_old_list.append(compare_old)
+                            
+                            
+                x = 1
+                for e in compare_old_list:
+                    if e not in compare_new_list:
+                        print str(x) + ' - Columns Compared: ' + str(n_new) + ' - ' + str(e)
+                        x += 1
+
+                    n_new = n_new - 1
+                    n_old = n_old - 1
+
         
             #list with cell coordinates and contents
 
@@ -140,3 +152,8 @@ def sheet_checker(ready):
                 
 if __name__ == "__main__":
     sheet_checker(ready)
+    
+    
+    
+
+
