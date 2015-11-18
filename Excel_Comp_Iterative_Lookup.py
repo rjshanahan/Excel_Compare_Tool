@@ -6,11 +6,13 @@
 import openpyxl
 from openpyxl.cell import get_column_letter, column_index_from_string
 from openpyxl import load_workbook
-import itertools
 import hashlib
 import csv
 import pprint as pp
+import itertools
 from itertools import cycle
+import re
+from string import punctuation
 
 
 ready = 'Helix_Case_PY.xlsx'
@@ -19,70 +21,39 @@ sheet_list_old = ['Helix_Case_DCW']
 sheet_list_new = ['Helix_Case_AUDIT']
 
 
-#function to generate MD5 checksum for file - NOT USED
-def md5(fname):
-    hash = hashlib.md5()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash.update(chunk)
-    return hash.hexdigest()
-
-
-    
-#formatted message re: mismatched cells
-def mismatch_printer(sheet, row_new_list, row_old_list):
-           
-    mismatches = [('Audit Report:', cell_new, 'DCW:',cell_old) for cell_new, cell_old in zip(row_new_list, row_old_list) if cell_new != cell_old]
-    
-    #mismatch_list = []
-    
-    #for cell_new, cell_old in zip(row_new_list, row_old_list):
-    #    if cell_new != cell_old:
-    #        m = ('Audit Report:', cell_new, 'DCW:',cell_old)
-    #        mismatches = mismatch_list.append(m)
-    
-    if len(mismatches) != 0:
-        txt_writer(mismatches, sheet)
-
-    else:
-        pass
-    
-    
-#function to write mismatches to txt file
-def txt_writer(mismatches, sheet):
-    
-    file_out = "UNIT_TESTING_{DCW}_Errors.txt".format(DCW = sheet)
-        
-    row1 = 'SHEET: "' + sheet + '" has matching errors - refer to problem cell(s) below' + '\n\n'
-    row2 = pp.pformat(mismatches)
-    row3 = '\n\n'
-               
-    text_file = open(file_out, "w")
-    text_file.write(str(row1))
-    text_file.write(str(row2))
-    text_file.write(row3)
-    text_file.close()
-    
-    
-    
 #function to rerun lookup less one attribute
 def list_stripper(row, n):
-    
+    global row_list_cat
     row_list_cat = []
 
-    [row_list_cat.append(''.join([cell.internal_value for cell in row[0:n]]))]
-    
-    #print row_list_cat[0:20]
-    
+    [row_list_cat.append([''.join([cell.internal_value for cell in row[0:n]]), cell.coordinate, n])]
+
     return row_list_cat
         
+    
+#function to write CSV file
+def writer_csv(output_list):
+    
+    #uses group name from URL to construct output file name
+    file_out = "DCW_Compare_{dcw}.csv".format(dcw = ready.rsplit('.',2)[0])
+    
+    with open(file_out, 'w') as csvfile:
+        col_labels = ['Compare_ID', 'Columns_Compared', 'Lookup_String', 'DCW_CellRef', 'Closest_Match_Audit']
+        
+        writer = csv.writer(csvfile, lineterminator='\n', delimiter=',', quotechar='"')
+        newrow = col_labels
+        writer.writerow(newrow)
+        
+        for i in output_list:
+            
+            newrow = i['compare_id'], i['columns_compared'], i['lookup_value_DCW'], i['cell_ref_dcw'], i['lookup_value_AUDIT']
+            writer.writerow(newrow)      
+
     
 #iterate through sheets and identify cells that do not match 
 def sheet_checker(ready):    
     
-    global row_new_list
-    global row_old_list
-
+    output_list = []
 
     #load workbooks for DCW and Audit Report
     wb_all = openpyxl.load_workbook(ready, use_iterators=True, data_only=True)
@@ -102,58 +73,59 @@ def sheet_checker(ready):
         #"map" with paramter 'None' ensures that lists of different length can be handled
         for row_new, row_old in map(None, ws_new.iter_rows(), ws_old.iter_rows()):
             
-            if row_new is not None:
-                [row_new_list.append([cell_new.coordinate, cell_new.internal_value]) for cell_new in row_new]
-        
-        
-            if row_old is not None:
-                [row_old_list.append([cell_old.coordinate, cell_old.internal_value]) for cell_old in row_old]
-        
-            #check to see if overall lists match - yeah right!@!
-            if row_new_list != row_old_list:
+
+            #check this: only row_old required i suspect
+            if row_new is not None and row_old is not None:
+
+                #this will define how many column stripping cycles to run
+                n_new = len(row_new) + 1
+                n_old = len(row_old) + 1
                 
-                #check this: only row_old required i suspect
-                if row_new is not None and row_old is not None:
-                    
-                    #this will define how many column stripping cycles to run
-                    n_new = len(row_new)
-                    n_old = len(row_old)  
-                    
-                    
-                    for n in range(1, n_new):
-                        
-                        compare_new_list = []
-                        compare_old_list = []
+                #create lists of 'cascading' concatenations
+                for n in range(1, n_new):
+
+                    compare_new = list_stripper(row_new, n)
+                    compare_new_list.append(compare_new)
+
+                    compare_old = list_stripper(row_old, n)
+                    compare_old_list.append(compare_old)
+
+          
+        #create list for only concatenated strings from NEW
+        list_lookup_new = []
+        for p in compare_new_list:
+            for q in p:
+                list_lookup_new.append(q[0])
         
-                        compare_new = list_stripper(row_new, n)
-                        compare_new_list.append(compare_new)
-                        
-                        compare_old = list_stripper(row_old, n)
-                        compare_old_list.append(compare_old)
-                            
-                            
-                x = 1
-                for e in compare_old_list:
-                    if e not in compare_new_list:
-                        print str(x) + ' - Columns Compared: ' + str(n_new) + ' - ' + str(e)
-                        x += 1
+        #output results for lookups
+        x=1
+        for e in compare_old_list:
+            mismatch_dict = {}
+            for f in e:
+                if f[0] not in list_lookup_new:
+                    #print str(x) + ' - Columns Compared: ' + str(e[0][2]) + ' - Value: ' + str(e[0][0]) + ' - DCW CellRef: ' + str(e[0][1])
+                    
+                    #regex pattern to find closest match          
+                    pattern = re.compile(f[0].format(re.escape(punctuation)), re.IGNORECASE)
+                    
+                    mismatch_dict = {
+                        'compare_id' : str(x),
+                        'columns_compared' : str(e[0][2]),
+                        'lookup_value_DCW' : str(e[0][0]),
+                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z).group() if pattern.search(z) is not None else "" for z in list_lookup_new]))),
+                        'cell_ref_dcw' : str(e[0][1])
+                        }
+                    
+                    output_list.append(mismatch_dict)
+                    
+                x += 1
 
-                    n_new = n_new - 1
-                    n_old = n_old - 1
-
+        writer_csv(output_list)
         
-            #list with cell coordinates and contents
-
-            #mismatch_printer(j, row_new_list, row_old_list)
-            #print 'mismatch results have been written to file - please review'
-        #else:
-            #print 'no issues found'
-
-                
+       
+        
+        
 if __name__ == "__main__":
     sheet_checker(ready)
+      
     
-    
-    
-
-
