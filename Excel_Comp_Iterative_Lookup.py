@@ -94,6 +94,7 @@ def sheet_checker(ready):
         #"map" with paramter 'None' ensures that lists of different length can be handled
         for row_new, row_old in map(None, ws_new.iter_rows(), ws_old.iter_rows()):
             
+            col_count = len(row_new)
 
             #check this: only row_old required i suspect
             if row_new is not None and row_old is not None:
@@ -120,6 +121,8 @@ def sheet_checker(ready):
         
         #output results for lookups
         x=1
+        prochar = re.compile('[(=\-\+\:/&<>;|\'"\?%#$@\,\._)]')
+        
         for e in compare_old_list:
             mismatch_dict = {}
             for f in e:
@@ -128,6 +131,7 @@ def sheet_checker(ready):
                     
                     #regex pattern to find closest match          
                     text = f[0].replace('-','').replace('.','')
+                    #text = prochar.sub(' ', f[0]).strip()
                     pattern = re.compile(text, re.IGNORECASE)
                     
                     mismatch_dict = {
@@ -144,8 +148,17 @@ def sheet_checker(ready):
 
         writer_csv(output_list)
         
-       
         
+        #summary stats
+        counter = 0
+        for i in output_list:
+            for j in range(0, col_count):
+                if i['columns_compared'] == str(j):
+                    counter += 1                    
+            print 'Errors for ' + str(j) + ' columns compared: ' + str(counter) + '\n'
+                #counter += 1
+        
+            
         
 if __name__ == "__main__":
     sheet_checker(ready)
