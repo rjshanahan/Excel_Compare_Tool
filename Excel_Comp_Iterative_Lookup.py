@@ -6,13 +6,8 @@
 import openpyxl
 from openpyxl.cell import get_column_letter, column_index_from_string
 from openpyxl import load_workbook
-import hashlib
 import csv
-import pprint as pp
-import itertools
-from itertools import cycle
 import re
-import string
 from string import punctuation
 
 
@@ -21,34 +16,31 @@ ready = 'Helix_Case_PY.xlsx'
 sheet_list_old = ['Helix_Case_DCW']
 sheet_list_new = ['Helix_Case_AUDIT']
 
-
-#function to generate MD5 checksum for file - NOT USED
-def md5(fname):
-    hash = hashlib.md5()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash.update(chunk)
-    return hash.hexdigest()
-
   
     
 #function to rerun lookup less one attribute
 def list_stripper(row, n):
+    
     global row_list_cat
     row_list_cat = []
-
-    [row_list_cat.append([''.join([cell.internal_value for cell in row[0:n]]), cell.coordinate, n])]
     
-    #print row_list_cat[0:20]
+    try:
+        [row_list_cat.append([''.join([cell.internal_value for cell in row[0:n]]), cell.coordinate, n])]
+        
+    #handler for empty rows
+    except TypeError:
+        row = ['blank_cell']
+        [row_list_cat.append(['blank_cell', cell.coordinate, n])]
+    
     
     return row_list_cat
         
     
 #function to write CSV file
-def writer_csv(output_list):
+def writer_csv(output_list, sheetname):
     
     #uses group name from URL to construct output file name
-    file_out = "DCW_Compare_{dcw}.csv".format(dcw = ready.rsplit('.',2)[0])
+    file_out = "DCW_Compare_{dcw}.csv".format(dcw = sheetname.rsplit('.',2)[0])
     
     with open(file_out, 'w') as csvfile:
         col_labels = ['Compare_ID', 'Columns_Compared', 'Lookup_String', 'DCW_CellRef', 'Closest_Match_Audit']
@@ -119,21 +111,21 @@ def sheet_checker(ready):
             for q in p:
                 list_lookup_new.append(q[0])
         
-        #output results for lookups
-        x=1
+        #loop through DCW and see if items cells within rows match entries in AUDIT
+        x=1         #initialise counter
         prochar = re.compile('[(=\-\+\:/&<>;|\'"\?%#$@\,\._)]')
         
         for e in compare_old_list:
             mismatch_dict = {}
             for f in e:
                 if f[0] not in list_lookup_new:
-                    #print str(x) + ' - Columns Compared: ' + str(e[0][2]) + ' - Value: ' + str(e[0][0]) + ' - DCW CellRef: ' + str(e[0][1])
                     
                     #regex pattern to find closest match          
                     text = f[0].replace('-','').replace('.','')
                     #text = prochar.sub(' ', f[0]).strip()
                     pattern = re.compile(text, re.IGNORECASE)
                     
+                    #build dictionary of items
                     mismatch_dict = {
                         'compare_id' : str(x),
                         'columns_compared' : str(e[0][2]),
@@ -143,22 +135,23 @@ def sheet_checker(ready):
                         }
                     
                     output_list.append(mismatch_dict)
-                    
+                #update counter
                 x += 1
 
-        writer_csv(output_list)
+        writer_csv(output_list, j)
         
         
         #summary stats
-        counter = 0
-        for i in output_list:
-            for j in range(0, col_count):
+        print '######## SUMMARY METRICS ########\n'
+        print 'Refer to output file for full details: ' + "DCW_Compare_{dcw}.csv".format(dcw = j.rsplit('.',2)[0]) + '\n'
+        for j in range(1, col_count + 1):
+            counter = 0
+            for i in output_list:
                 if i['columns_compared'] == str(j):
                     counter += 1                    
             print 'Errors for ' + str(j) + ' columns compared: ' + str(counter) + '\n'
-                #counter += 1
-        
             
+        
         
 if __name__ == "__main__":
     sheet_checker(ready)
