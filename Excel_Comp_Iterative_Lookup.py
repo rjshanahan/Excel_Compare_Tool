@@ -12,6 +12,7 @@ import pprint as pp
 import itertools
 from itertools import cycle
 import re
+import string
 from string import punctuation
 
 
@@ -21,13 +22,25 @@ sheet_list_old = ['Helix_Case_DCW']
 sheet_list_new = ['Helix_Case_AUDIT']
 
 
+#function to generate MD5 checksum for file - NOT USED
+def md5(fname):
+    hash = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash.update(chunk)
+    return hash.hexdigest()
+
+  
+    
 #function to rerun lookup less one attribute
 def list_stripper(row, n):
     global row_list_cat
     row_list_cat = []
 
     [row_list_cat.append([''.join([cell.internal_value for cell in row[0:n]]), cell.coordinate, n])]
-
+    
+    #print row_list_cat[0:20]
+    
     return row_list_cat
         
     
@@ -52,6 +65,14 @@ def writer_csv(output_list):
     
 #iterate through sheets and identify cells that do not match 
 def sheet_checker(ready):    
+    
+    global row_new_list
+    global row_old_list
+
+    global compare_new_list
+    global compare_old_list
+    
+    global output_list
     
     output_list = []
 
@@ -106,13 +127,14 @@ def sheet_checker(ready):
                     #print str(x) + ' - Columns Compared: ' + str(e[0][2]) + ' - Value: ' + str(e[0][0]) + ' - DCW CellRef: ' + str(e[0][1])
                     
                     #regex pattern to find closest match          
-                    pattern = re.compile(f[0].format(re.escape(punctuation)), re.IGNORECASE)
+                    text = f[0].replace('-','').replace('.','')
+                    pattern = re.compile(text, re.IGNORECASE)
                     
                     mismatch_dict = {
                         'compare_id' : str(x),
                         'columns_compared' : str(e[0][2]),
                         'lookup_value_DCW' : str(e[0][0]),
-                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z).group() if pattern.search(z) is not None else "" for z in list_lookup_new]))),
+                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z.strip(string.punctuation)).group() if pattern.search(z.strip(string.punctuation)) is not None else "" for z in list_lookup_new]))),
                         'cell_ref_dcw' : str(e[0][1])
                         }
                     
