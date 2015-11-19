@@ -24,7 +24,7 @@ def list_stripper(row, n):
     row_list_cat = []
     
     try:
-        [row_list_cat.append([''.join([cell.internal_value.strip() for cell in row[0:n]]), cell.coordinate, n])]
+        [row_list_cat.append([''.join([str(cell.internal_value).strip() for cell in row[0:n]]), cell.coordinate, n])]
         
     #handler for empty rows
     except TypeError:
@@ -57,7 +57,6 @@ def writer_csv(output_list, sheetname):
 #iterate through sheets and identify cells that do not match 
 def sheet_checker(ready):    
     
-    output_list = []
 
     #load workbooks for DCW and Audit Report
     wb_all = openpyxl.load_workbook(ready, use_iterators=True, data_only=True)
@@ -73,6 +72,8 @@ def sheet_checker(ready):
                 
         compare_old_list = []
         compare_new_list = []
+        
+        output_list = []
         
         #build list from DCW
         for row_old in ws_old.iter_rows():
@@ -128,7 +129,7 @@ def sheet_checker(ready):
                         'compare_id' : str(x),
                         'columns_compared' : str(e[0][2]),
                         'lookup_value_DCW' : str(e[0][0].strip()),
-                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z.replace('-','').replace('.','')).group() if pattern.search(z.strip(string.punctuation)) is not None else "" for z in list_lookup_new]))),
+                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z.replace('-',' ').replace('.',' ')).group() if pattern.search(z.replace('-',' ').replace('.',' ')) is not None else "" for z in list_lookup_new]))),
                         'cell_ref_dcw' : str(e[0][1])
                         }
                     
