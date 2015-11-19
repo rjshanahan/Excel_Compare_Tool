@@ -29,7 +29,7 @@ def list_stripper(row, n):
     row_list_cat = []
     
     try:
-        [row_list_cat.append([''.join([str(cell.internal_value).strip() for cell in row[0:n]]), cell.coordinate, n])]
+        [row_list_cat.append([''.join([(cell.internal_value).encode("utf-8").strip() for cell in row[0:n]]), cell.coordinate, n])]
         
     #handler for empty rows
     except TypeError, AttributeError:
