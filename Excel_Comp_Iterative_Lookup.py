@@ -27,7 +27,7 @@ def list_stripper(row, n):
         [row_list_cat.append([''.join([str(cell.internal_value).strip() for cell in row[0:n]]), cell.coordinate, n])]
         
     #handler for empty rows
-    except TypeError:
+    except TypeError, AttributeError:
         row = ['blank_cell']
         [row_list_cat.append(['blank_cell', cell.coordinate, n])]
     
@@ -112,7 +112,9 @@ def sheet_checker(ready):
         
         #loop through DCW and see if items cells within rows match entries in AUDIT
         x=1         #initialise counter
-        prochar = re.compile('[(=\-\+\:/&<>;|\'"\?%#$@\,\._)]')
+        #prochar = re.compile('[(=\-\+\:/&<>;|\'"\?%#$@\,\._)]')
+        prochar = re.compile('.-')
+
         
         for e in compare_old_list:
             mismatch_dict = {}
@@ -120,16 +122,21 @@ def sheet_checker(ready):
                 if f[0].strip() not in list_lookup_new:
                     
                     #regex pattern to find closest match          
-                    text = f[0].replace('-','').replace('.','')
+                    #text = f[0].strip()
                     #text = prochar.sub(' ', f[0]).strip()
+                    text = f[0].replace('-', ' ').replace('.', ' ').strip()
+                    #pattern = re.compile(r'[^-.]({text})*', re.IGNORECASE)
                     pattern = re.compile(text, re.IGNORECASE)
+
                     
                     #build dictionary of items
                     mismatch_dict = {
                         'compare_id' : str(x),
                         'columns_compared' : str(e[0][2]),
                         'lookup_value_DCW' : str(e[0][0].strip()),
-                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z.replace('-',' ').replace('.',' ')).group() if pattern.search(z.replace('-',' ').replace('.',' ')) is not None else "" for z in list_lookup_new]))),
+                        #'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z.strip()).group() if pattern.search(z.strip()) is not None else "" for z in list_lookup_new]))),
+                        #'lookup_value_AUDIT' : ', '.join(set(filter(None, [z if pattern.search(prochar.sub(' ', z).strip().strip()) is not None else "" for z in list_lookup_new]))),
+                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [z if pattern.search(z.replace('-', ' ').replace('.', ' ').strip()) is not None else "" for z in list_lookup_new]))),
                         'cell_ref_dcw' : str(e[0][1])
                         }
                     
