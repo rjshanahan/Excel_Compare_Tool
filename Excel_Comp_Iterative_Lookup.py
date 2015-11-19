@@ -9,6 +9,7 @@ from openpyxl import load_workbook
 import csv
 import re
 from string import punctuation
+from difflib import get_close_matches
 
 
 ready = 'Helix_Case_PY.xlsx'
@@ -112,31 +113,19 @@ def sheet_checker(ready):
         
         #loop through DCW and see if items cells within rows match entries in AUDIT
         x=1         #initialise counter
-        #prochar = re.compile('[(=\-\+\:/&<>;|\'"\?%#$@\,\._)]')
-        prochar = re.compile('.-')
-
         
         for e in compare_old_list:
             mismatch_dict = {}
             for f in e:
                 if f[0].strip() not in list_lookup_new:
                     
-                    #regex pattern to find closest match          
-                    #text = f[0].strip()
-                    #text = prochar.sub(' ', f[0]).strip()
-                    text = f[0].replace('-', ' ').replace('.', ' ').strip()
-                    #pattern = re.compile(r'[^-.]({text})*', re.IGNORECASE)
-                    pattern = re.compile(text, re.IGNORECASE)
-
                     
                     #build dictionary of items
                     mismatch_dict = {
                         'compare_id' : str(x),
                         'columns_compared' : str(e[0][2]),
                         'lookup_value_DCW' : str(e[0][0].strip()),
-                        #'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z.strip()).group() if pattern.search(z.strip()) is not None else "" for z in list_lookup_new]))),
-                        #'lookup_value_AUDIT' : ', '.join(set(filter(None, [z if pattern.search(prochar.sub(' ', z).strip().strip()) is not None else "" for z in list_lookup_new]))),
-                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [z if pattern.search(z.replace('-', ' ').replace('.', ' ').strip()) is not None else "" for z in list_lookup_new]))),
+                        'lookup_value_AUDIT' : get_close_matches(f[0], list(set(list_lookup_new)), n=2, cutoff=0.8),
                         'cell_ref_dcw' : str(e[0][1])
                         }
                     
