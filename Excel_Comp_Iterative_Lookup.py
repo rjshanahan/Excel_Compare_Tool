@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+#Richard Shanahan
+#rjshanahan@gmail.com
+#19 November 2015
+
 ## ADAPATED VERSION FOR ROW by ROW and then CELL by CELL Comparison ##
 
 import openpyxl
@@ -12,10 +16,10 @@ from string import punctuation
 from difflib import get_close_matches
 
 
-ready = 'Helix_Case_PY.xlsx'
+ready = '[INSERT YOUR WORKBOOK NAME].xlsx'
 
-sheet_list_old = ['Helix_Case_DCW']
-sheet_list_new = ['Helix_Case_AUDIT']
+sheet_list_old = ['INSERT "PRE" SHEET FOR COMAPRISON', 'ADD OTHER "PRE" SHEETS BY ADDING TO THIS LIST']
+sheet_list_new = ['INSERT "POST" SHEET FOR COMAPRISON', 'ADD OTHER "POST" SHEETS BY ADDING TO THIS LIST']
 
   
     
@@ -32,14 +36,13 @@ def list_stripper(row, n):
         row = ['blank_cell']
         [row_list_cat.append(['blank_cell', cell.coordinate, n])]
     
-    
     return row_list_cat
         
     
 #function to write CSV file
 def writer_csv(output_list, sheetname):
     
-    #uses group name from URL to construct output file name
+    #uses 'pre' worksheet name to construct output file name
     file_out = "DCW_Compare_{dcw}.csv".format(dcw = sheetname.rsplit('.',2)[0])
     
     with open(file_out, 'w') as csvfile:
@@ -58,10 +61,8 @@ def writer_csv(output_list, sheetname):
 #iterate through sheets and identify cells that do not match 
 def sheet_checker(ready):    
     
-
     #load workbooks for DCW and Audit Report
     wb_all = openpyxl.load_workbook(ready, use_iterators=True, data_only=True)
-
  
     for i, j in map(None, sheet_list_new, sheet_list_old):
 
@@ -119,7 +120,6 @@ def sheet_checker(ready):
             for f in e:
                 if f[0].strip() not in list_lookup_new:
                     
-                    
                     #build dictionary of items
                     mismatch_dict = {
                         'compare_id' : str(x),
@@ -147,11 +147,6 @@ def sheet_checker(ready):
             print 'Errors for ' + str(j) + ' columns compared: ' + str(counter) + '\n'
             
         
-        
+#tip the domino    
 if __name__ == "__main__":
     sheet_checker(ready)
-      
-        
-        
-
-
