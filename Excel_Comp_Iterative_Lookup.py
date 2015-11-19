@@ -20,12 +20,11 @@ sheet_list_new = ['Helix_Case_AUDIT']
     
 #function to rerun lookup less one attribute
 def list_stripper(row, n):
-    
-    global row_list_cat
+
     row_list_cat = []
     
     try:
-        [row_list_cat.append([''.join([cell.internal_value for cell in row[0:n]]), cell.coordinate, n])]
+        [row_list_cat.append([''.join([cell.internal_value.strip() for cell in row[0:n]]), cell.coordinate, n])]
         
     #handler for empty rows
     except TypeError:
@@ -58,58 +57,57 @@ def writer_csv(output_list, sheetname):
 #iterate through sheets and identify cells that do not match 
 def sheet_checker(ready):    
     
-    global row_new_list
-    global row_old_list
-
-    global compare_new_list
-    global compare_old_list
-    
-    global output_list
-    
     output_list = []
 
     #load workbooks for DCW and Audit Report
     wb_all = openpyxl.load_workbook(ready, use_iterators=True, data_only=True)
 
  
-    for i, j in zip(sheet_list_new, sheet_list_old):
+    for i, j in map(None, sheet_list_new, sheet_list_old):
 
-        ws_new = wb_all.get_sheet_by_name(i)
         ws_old = wb_all.get_sheet_by_name(j)
-
-        row_new_list = []
+        ws_new = wb_all.get_sheet_by_name(i)
+        
         row_old_list = []
-        
-        compare_new_list = []
-        compare_old_list = []
-        
-        #"map" with paramter 'None' ensures that lists of different length can be handled
-        for row_new, row_old in map(None, ws_new.iter_rows(), ws_old.iter_rows()):
-            
-            col_count = len(row_new)
-
-            #check this: only row_old required i suspect
-            if row_new is not None and row_old is not None:
-
-                #this will define how many column stripping cycles to run
-                n_new = len(row_new) + 1
-                n_old = len(row_old) + 1
+        row_new_list = []
                 
+        compare_old_list = []
+        compare_new_list = []
+        
+        #build list from DCW
+        for row_old in ws_old.iter_rows():
+            col_count = len(row_old)
+            
+            if row_old is not None:
+                
+                n_old = len(row_old) + 1
+            
+                #create lists of 'cascading' concatenations
+                for n in range(1, n_old):
+
+                    compare_old = list_stripper(row_old, n)
+                    compare_old_list.append(compare_old)
+            
+        #build list from AUDIT
+        for row_new in ws_new.iter_rows():
+            col_count = len(row_new)
+            
+            if row_new is not None:
+                
+                n_new = len(row_new) + 1
+            
                 #create lists of 'cascading' concatenations
                 for n in range(1, n_new):
 
                     compare_new = list_stripper(row_new, n)
                     compare_new_list.append(compare_new)
-
-                    compare_old = list_stripper(row_old, n)
-                    compare_old_list.append(compare_old)
-
+            
           
         #create list for only concatenated strings from NEW
         list_lookup_new = []
         for p in compare_new_list:
             for q in p:
-                list_lookup_new.append(q[0])
+                list_lookup_new.append(q[0].strip())
         
         #loop through DCW and see if items cells within rows match entries in AUDIT
         x=1         #initialise counter
@@ -118,7 +116,7 @@ def sheet_checker(ready):
         for e in compare_old_list:
             mismatch_dict = {}
             for f in e:
-                if f[0] not in list_lookup_new:
+                if f[0].strip() not in list_lookup_new:
                     
                     #regex pattern to find closest match          
                     text = f[0].replace('-','').replace('.','')
@@ -129,8 +127,8 @@ def sheet_checker(ready):
                     mismatch_dict = {
                         'compare_id' : str(x),
                         'columns_compared' : str(e[0][2]),
-                        'lookup_value_DCW' : str(e[0][0]),
-                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z.strip(string.punctuation)).group() if pattern.search(z.strip(string.punctuation)) is not None else "" for z in list_lookup_new]))),
+                        'lookup_value_DCW' : str(e[0][0].strip()),
+                        'lookup_value_AUDIT' : ', '.join(set(filter(None, [pattern.search(z.replace('-','').replace('.','')).group() if pattern.search(z.strip(string.punctuation)) is not None else "" for z in list_lookup_new]))),
                         'cell_ref_dcw' : str(e[0][1])
                         }
                     
@@ -156,4 +154,7 @@ def sheet_checker(ready):
 if __name__ == "__main__":
     sheet_checker(ready)
       
-    
+        
+        
+
+
